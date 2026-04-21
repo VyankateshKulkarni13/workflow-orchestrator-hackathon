@@ -1,0 +1,30 @@
+{
+  "name": "inventory_workflow",
+  "tasks": [
+    {
+      "id": "check_inventory",
+      "type": "MESSAGE_QUEUE",
+      "dependencies": []
+    },
+    {
+      "id": "add_order_db",
+      "type": "MESSAGE_QUEUE",
+      "dependencies": ["check_inventory"]
+    },
+    {
+      "id": "send_receipt",
+      "type": "MESSAGE_QUEUE",
+      "dependencies": ["add_order_db"]
+    },
+    {
+      "id": "update_status",
+      "type": "MESSAGE_QUEUE",
+      "dependencies": ["add_order_db"]
+    },
+    {
+      "id": "inform_vendor",
+      "type": "MESSAGE_QUEUE",
+      "dependencies": ["add_order_db"]
+    }
+  ]
+}
