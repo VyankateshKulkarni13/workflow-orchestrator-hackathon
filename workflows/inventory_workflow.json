@@ -1,0 +1,93 @@
+{
+  "dag": {
+    "dag_id": "order_processing_workflow",
+    "description": "Order processing DAG with inventory check and concurrent execution",
+    "schedule_interval": null,
+    "start_date": "2026-01-01",
+    "catchup": false,
+    "tags": ["order", "inventory", "processing"],
+    "tasks": [
+      {
+        "task_id": "check_inventory",
+        "step": 1,
+        "type": "PythonOperator",
+        "description": "Check current inventory levels for the ordered item",
+        "python_callable": "check_inventory_fn",
+        "dependencies": []
+      },
+      {
+        "task_id": "sufficient_quantity_available",
+        "step": 2,
+        "type": "BranchPythonOperator",
+        "description": "Decision: Is sufficient quantity available in inventory?",
+        "python_callable": "check_quantity_branch",
+        "branches": {
+          "yes": "add_order_to_db",
+          "no": "fail_log_out_of_stock"
+        },
+        "dependencies": ["check_inventory"]
+      },
+      {
+        "task_id": "add_order_to_db",
+        "step": 3,
+        "type": "PythonOperator",
+        "description": "Add the confirmed order to the database",
+        "python_callable": "add_order_to_db_fn",
+        "dependencies": ["sufficient_quantity_available"]
+      },
+      {
+        "task_id": "fail_log_out_of_stock",
+        "step": 4,
+        "type": "PythonOperator",
+        "description": "Fail path: Log that the item is out of stock",
+        "python_callable": "log_out_of_stock_fn",
+        "trigger_rule": "one_failed",
+        "dependencies": ["sufficient_quantity_available"]
+      },
+      {
+        "task_id": "concurrent_execution_trigger",
+        "step": 4,
+        "type": "DummyOperator",
+        "description": "Trigger concurrent execution of downstream tasks",
+        "trigger_rule": "all_success",
+        "dependencies": ["add_order_to_db"]
+      },
+      {
+        "task_id": "send_customer_receipt",
+        "step": 5,
+        "type": "PythonOperator",
+        "description": "Send receipt/confirmation email to the customer",
+        "python_callable": "send_customer_receipt_fn",
+        "dependencies": ["concurrent_execution_trigger"]
+      },
+      {
+        "task_id": "update_order_status",
+        "step": 5,
+        "type": "PythonOperator",
+        "description": "Update the order status in the system",
+        "python_callable": "update_order_status_fn",
+        "dependencies": ["concurrent_execution_trigger"]
+      },
+      {
+        "task_id": "inform_vendor",
+        "step": 5,
+        "type": "PythonOperator",
+        "description": "Notify the vendor about the new order",
+        "python_callable": "inform_vendor_fn",
+        "dependencies": ["concurrent_execution_trigger"]
+      }
+    ],
+    "flow": {
+      "start": "check_inventory",
+      "edges": [
+        { "from": "check_inventory",              "to": "sufficient_quantity_available" },
+        { "from": "sufficient_quantity_available", "to": "add_order_to_db",             "condition": "yes" },
+        { "from": "sufficient_quantity_available", "to": "fail_log_out_of_stock",       "condition": "no"  },
+        { "from": "add_order_to_db",              "to": "concurrent_execution_trigger" },
+        { "from": "concurrent_execution_trigger", "to": "send_customer_receipt"        },
+        { "from": "concurrent_execution_trigger", "to": "update_order_status"          },
+        { "from": "concurrent_execution_trigger", "to": "inform_vendor"                }
+      ]
+    }
+  }
+}
