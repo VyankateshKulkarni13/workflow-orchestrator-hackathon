@@ -1,14 +1,7 @@
 """
-routers/callbacks.py
----------------------
 Webhook endpoints used EXCLUSIVELY by worker microservices to report results.
 These should NEVER be called by the frontend or end users.
-
-Routes:
-  POST /api/v1/callbacks/task-complete - Worker reports successful completion
-  POST /api/v1/callbacks/task-failed   - Worker reports task failure
 """
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -24,9 +17,7 @@ async def get_db():
         yield session
 
 
-# ---------------------------------------------------------------------------
-# POST /api/v1/callbacks/task-complete
-# ---------------------------------------------------------------------------
+
 @router.post("/task-complete", response_model=MessageResponse)
 async def callback_task_complete(
     payload: TaskCompleteRequest,
@@ -66,9 +57,7 @@ async def callback_task_complete(
     )
 
 
-# ---------------------------------------------------------------------------
-# POST /api/v1/callbacks/task-failed
-# ---------------------------------------------------------------------------
+
 @router.post("/task-failed", response_model=MessageResponse)
 async def callback_task_failed(
     payload: TaskFailedRequest,

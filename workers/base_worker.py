@@ -1,14 +1,5 @@
 """
-base_worker.py
---------------
 Shared Redis listener used by all 5 mock workers.
-
-Pattern:
-  - Workers register handlers with @register("node_id")
-  - run() blocks forever, reading from queue:MOCK_HTTP
-  - On task received, dispatches to the registered handler
-  - On success: POST /api/v1/callbacks/task-complete
-  - On failure: POST /api/v1/callbacks/task-failed
 """
 
 import json
@@ -28,9 +19,7 @@ REDIS_URL       = os.getenv("REDIS_URL",        "redis://localhost:6379")
 ORCHESTRATOR    = os.getenv("ORCHESTRATOR_HOST", "http://localhost:8000")
 QUEUE_NAME      = "queue:MOCK_HTTP"
 
-# ---------------------------------------------------------------------------
-# Logging setup — clean, timestamped output for every worker
-# ---------------------------------------------------------------------------
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)-8s | %(message)s",
@@ -38,10 +27,7 @@ logging.basicConfig(
 )
 log = logging.getLogger("Worker")
 
-# ---------------------------------------------------------------------------
-# Handler Registry
-# Maps node_id (e.g., "charge_payment") → handler function
-# ---------------------------------------------------------------------------
+
 _HANDLERS: dict = {}
 
 
@@ -61,9 +47,7 @@ def register(node_id: str):
     return decorator
 
 
-# ---------------------------------------------------------------------------
 # Callback Sender
-# ---------------------------------------------------------------------------
 def _send_callback(endpoint: str, body: dict) -> None:
     """
     POST the task result to the orchestrator's callback endpoint.
@@ -86,9 +70,7 @@ def _send_callback(endpoint: str, body: dict) -> None:
     log.critical(f"  FAILED to send callback after 3 attempts. task_id={body.get('task_id')}")
 
 
-# ---------------------------------------------------------------------------
 # Main Worker Loop
-# ---------------------------------------------------------------------------
 def run() -> None:
     """
     Connect to Redis and block forever, processing tasks as they arrive.

@@ -9,9 +9,7 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
 
-# ===========================================================================
 # TEMPLATE SCHEMAS
-# ===========================================================================
 
 class TemplateUploadRequest(BaseModel):
     """Payload to upload a new DAG workflow blueprint."""
@@ -41,9 +39,7 @@ class TemplateResponse(BaseModel):
         from_attributes = True
 
 
-# ===========================================================================
 # EXECUTION SCHEMAS
-# ===========================================================================
 
 class ExecutionCreateRequest(BaseModel):
     """Payload to trigger a new workflow execution from a template."""
@@ -87,9 +83,7 @@ class ExecutionSummaryResponse(BaseModel):
     updated_at: str
 
 
-# ===========================================================================
 # TASK SCHEMAS (HUMAN-IN-THE-LOOP)
-# ===========================================================================
 
 class ApprovalRequest(BaseModel):
     """Payload for approving or rejecting a HUMAN_APPROVAL task."""
@@ -107,9 +101,7 @@ class RetryRequest(BaseModel):
     )
 
 
-# ===========================================================================
 # CALLBACK SCHEMAS (USED BY WORKERS)
-# ===========================================================================
 
 class TaskCompleteRequest(BaseModel):
     """Payload sent by a worker to report successful task completion."""
@@ -131,9 +123,7 @@ class TaskFailedRequest(BaseModel):
     )
 
 
-# ===========================================================================
 # GENERIC RESPONSE
-# ===========================================================================
 
 class MessageResponse(BaseModel):
     """Generic acknowledgement response."""

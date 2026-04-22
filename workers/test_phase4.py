@@ -53,9 +53,7 @@ async def run_tests():
 
     async with httpx.AsyncClient(timeout=20.0) as client:
 
-        # ------------------------------------------------------------------
         # STEP 0: Pre-flight — make sure the server is up
-        # ------------------------------------------------------------------
         print("\n[Pre-flight] Checking orchestrator is up...")
         try:
             resp = await client.get(f"{BASE_URL}/executions")
@@ -66,9 +64,7 @@ async def run_tests():
             print("  --> Make sure: cd orchestrator && python -m uvicorn api:app --port 8000")
             sys.exit(1)
 
-        # ------------------------------------------------------------------
         # TEST 1: Upload e-commerce DAG template
-        # ------------------------------------------------------------------
         print("\n[Test 1] POST /templates — Upload 6-node e-commerce DAG")
         resp = await client.post(f"{BASE_URL}/templates", json={
             "name":        "E-Commerce Order Processing",
@@ -79,9 +75,7 @@ async def run_tests():
         template_id = resp.json()["template_id"]
         print(f"  [PASS] Template uploaded. template_id={template_id}")
 
-        # ------------------------------------------------------------------
         # TEST 2: Trigger execution
-        # ------------------------------------------------------------------
         print("\n[Test 2] POST /executions — Trigger e-commerce workflow")
         resp = await client.post(f"{BASE_URL}/executions", json={
             "template_id":    template_id,
@@ -93,9 +87,7 @@ async def run_tests():
 
         await asyncio.sleep(2)
 
-        # ------------------------------------------------------------------
         # TEST 3: Verify initial state — only validate_order should start
-        # ------------------------------------------------------------------
         print("\n[Test 3] Verify initial DAG state (only validate_order should be IN_PROGRESS)")
         resp = await client.get(f"{BASE_URL}/executions/{execution_id}")
         assert resp.status_code == 200
@@ -111,10 +103,8 @@ async def run_tests():
             f"fraud_check should be PENDING, got {task_map['fraud_check']['status']}"
         print(f"  [PASS] Kahn's Algorithm holding back downstream tasks correctly.")
 
-        # ------------------------------------------------------------------
         # TEST 4: Wait for worker to auto-complete MOCK_HTTP tasks
         #         Meanwhile, we need to approve the fraud_check HUMAN_APPROVAL
-        # ------------------------------------------------------------------
         print(f"\n[Test 4] Watching DAG progress (max {TIMEOUT}s)...")
         print("         Workers running in background. Waiting for tasks to complete...")
 
@@ -152,9 +142,7 @@ async def run_tests():
             if state["status"] in ("COMPLETED", "FAILED", "TERMINATED"):
                 break
 
-        # ------------------------------------------------------------------
         # TEST 5: Final state assertions
-        # ------------------------------------------------------------------
         print(f"\n[Test 5] Final state verification")
         resp = await client.get(f"{BASE_URL}/executions/{execution_id}")
         final  = resp.json()

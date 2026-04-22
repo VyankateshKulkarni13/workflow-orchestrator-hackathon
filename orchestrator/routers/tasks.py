@@ -36,9 +36,7 @@ def _get_task_or_404(task_exec, task_id: str):
         )
 
 
-# ---------------------------------------------------------------------------
 # POST /api/v1/tasks/{task_id}/approve
-# ---------------------------------------------------------------------------
 @router.post("/{task_id}/approve", response_model=MessageResponse)
 async def approve_task(
     task_id: str,
@@ -79,9 +77,7 @@ async def approve_task(
     )
 
 
-# ---------------------------------------------------------------------------
 # POST /api/v1/tasks/{task_id}/reject
-# ---------------------------------------------------------------------------
 @router.post("/{task_id}/reject", response_model=MessageResponse)
 async def reject_task(
     task_id: str,
@@ -117,9 +113,7 @@ async def reject_task(
     )
 
 
-# ---------------------------------------------------------------------------
 # POST /api/v1/tasks/{task_id}/retry
-# ---------------------------------------------------------------------------
 @router.post("/{task_id}/retry", response_model=MessageResponse)
 async def retry_task(
     task_id: str,

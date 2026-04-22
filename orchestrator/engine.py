@@ -1,14 +1,6 @@
 """
-engine.py
----------
-The core DAG orchestration engine.
-
-Implements Kahn's Algorithm (BFS-based topological sort) with:
-  - Cycle detection during parse
-  - Full error handling at every step
-  - Async concurrent task dispatch via asyncio.gather()
-  - Execution time tracking (started_at / completed_at)
-  - All inputs, outputs, logs, and errors stored to DB for auditing
+Core DAG orchestration engine.
+Implements Kahn's Algorithm for cycle detection and async task dispatch.
 """
 
 import asyncio
@@ -30,31 +22,12 @@ from models import (
 from redis_client import enqueue_task
 
 
-# ===========================================================================
-# SECTION 1: DAG VALIDATION & CYCLE DETECTION
-# ===========================================================================
-
 def parse_dag(definition: dict) -> dict:
     """
     Validates a workflow definition dict and detects cycles using Kahn's Algorithm.
-
-    This function is called BEFORE saving a workflow template to the DB.
-    If the user uploads a JSON/YAML with a cycle (e.g., A â†’ B â†’ A), we reject
-    it immediately with a clear error â€” not after trying to execute it.
-
-    Args:
-        definition: The parsed JSON/YAML dict from the uploaded workflow file.
-
-    Returns:
-        A dict with 'nodes' (list of task IDs) and 'adjacency' (dependency map).
-
-    Raises:
-        ValueError: If the DAG structure is invalid or contains a cycle.
+    Raises ValueError if cycle detected.
     """
-    # -----------------------------------------------------------------------
-    # Step 1: Extract tasks — supports both flat {"tasks": [...]} and
-    #         Airflow-style {"dag": {"tasks": [...]}} wrapper formats.
-    # -----------------------------------------------------------------------
+    # Extract tasks (supports both flat and Airflow-style wrapper formats)
     if "dag" in definition and "tasks" in definition["dag"]:
         tasks = definition["dag"]["tasks"]
     else:
@@ -79,10 +52,7 @@ def parse_dag(definition: dict) -> dict:
 
     node_ids = list(task_map.keys())
 
-    # -----------------------------------------------------------------------
-    # Step 2: Build adjacency list and in-degree count
-    # This is the SETUP phase of Kahn's Algorithm.
-    # -----------------------------------------------------------------------
+    # Build adjacency list and in-degree count
     # in_degree[node] = number of parents that must finish before this node runs
     in_degree = {node_id: 0 for node_id in node_ids}
 
@@ -104,13 +74,8 @@ def parse_dag(definition: dict) -> dict:
             adjacency[parent_id].append(task_id)
             in_degree[task_id] += 1
 
-    # -----------------------------------------------------------------------
-    # Step 3: Kahn's Algorithm — BFS Cycle Detection
-    # Start with all nodes that have no dependencies (in_degree == 0).
-    # Process them, decrement children's in_degree, add newly freed nodes.
-    # If we process all nodes â†’ no cycle.
-    # If we get stuck with unprocessed nodes â†’ cycle exists.
-    # -----------------------------------------------------------------------
+    # BFS Cycle Detection
+    # TODO: consider recursive DFS for smaller DAGs if queue overhead becomes an issue
     queue = deque([node for node in node_ids if in_degree[node] == 0])
     processed_count = 0
 
@@ -131,9 +96,7 @@ def parse_dag(definition: dict) -> dict:
             f"Circular dependency found."
         )
 
-    # -----------------------------------------------------------------------
-    # Step 4: Return the validated structure
-    # -----------------------------------------------------------------------
+
     return {
         "nodes": node_ids,
         "adjacency": dict(adjacency),
@@ -141,32 +104,13 @@ def parse_dag(definition: dict) -> dict:
     }
 
 
-# ===========================================================================
-# SECTION 2: THE ORCHESTRATION LOOP (Kahn's Runtime Engine)
-# ===========================================================================
-
 async def run_next_tasks(execution_id: str, db: AsyncSession) -> None:
     """
-    The heart of the orchestrator. Called after:
-      - A new workflow execution is triggered (initial dispatch).
-      - A task completes and calls back via the /callback webhook.
-
-    Uses Kahn's Algorithm at runtime:
-      - Reads all TaskExecution rows from DB for this execution.
-      - Calculates which PENDING nodes have ALL their parents COMPLETED.
-      - Those nodes have effective in-degree 0 â†’ dispatch them concurrently.
-      - If no PENDING nodes remain, marks the whole WorkflowExecution as COMPLETED.
-
-    All errors are caught, logged to DB, and propagate cleanly.
-
-    Args:
-        execution_id: UUID string of the WorkflowExecution.
-        db: An active AsyncSession from the FastAPI dependency.
+    Evaluates the DAG based on current DB state and dispatches ready tasks.
+    Called on initial trigger and subsequent webhook callbacks.
     """
     try:
-        # -------------------------------------------------------------------
-        # Step 1: Load the WorkflowExecution + its Template from DB
-        # -------------------------------------------------------------------
+
         result = await db.execute(
             select(WorkflowExecution)
             .where(WorkflowExecution.execution_id == execution_id)
@@ -200,9 +144,7 @@ async def run_next_tasks(execution_id: str, db: AsyncSession) -> None:
         # Build lookup using either 'id' or 'task_id' key
         tasks_definition = {(t.get("id") or t.get("task_id")): t for t in raw_tasks}
 
-        # -------------------------------------------------------------------
-        # Step 2: Load all task execution rows for this run
-        # -------------------------------------------------------------------
+
         task_result = await db.execute(
             select(TaskExecution)
             .where(TaskExecution.execution_id == execution_id)
@@ -216,11 +158,9 @@ async def run_next_tasks(execution_id: str, db: AsyncSession) -> None:
         for t in all_task_execs:
             print(f"[DEBUG] {t.node_id}: {t.status}")
 
-        # -------------------------------------------------------------------
-        # Step 3: Kahn's Runtime In-Degree Calculation
-        # For each PENDING node, count how many of its declared parents
-        # are NOT yet COMPLETED. This is the effective runtime in-degree.
-        # -------------------------------------------------------------------
+        # Calculate runtime in-degrees
+        # FIXME: querying all tasks on every tick is expensive. Need to optimize this with a 
+        # dedicated materialized view or Redis cache state for massive DAGs.
         ready_nodes = []   # Nodes with runtime in-degree == 0
 
         for task_exec in all_task_execs:
@@ -244,9 +184,7 @@ async def run_next_tasks(execution_id: str, db: AsyncSession) -> None:
             if blocking_parents == 0:
                 ready_nodes.append((node_id, task_def, task_exec))
 
-        # -------------------------------------------------------------------
-        # Step 4: Check for workflow completion
-        # -------------------------------------------------------------------
+
         if not ready_nodes:
             all_statuses = {te.status for te in all_task_execs}
             still_running = {TaskStatus.PENDING, TaskStatus.IN_PROGRESS, TaskStatus.AWAITING_APPROVAL}
@@ -265,7 +203,7 @@ async def run_next_tasks(execution_id: str, db: AsyncSession) -> None:
                 await db.commit()
             return
 
-        # 4. Dispatch them sequentially (asyncpg does not allow concurrent queries on the same session)
+        # Dispatch sequentially (asyncpg session lock limitation)
         for node_id, task_def, task_exec in ready_nodes:
             await _dispatch_single_task(
                 node_id=node_id,
@@ -295,10 +233,6 @@ async def run_next_tasks(execution_id: str, db: AsyncSession) -> None:
         except Exception:
             pass 
 
-
-# ===========================================================================
-# SECTION 3: SINGLE TASK DISPATCHER
-# ===========================================================================
 
 async def _dispatch_single_task(
     node_id: str,
@@ -392,10 +326,6 @@ async def _dispatch_single_task(
             pass  
 
 
-# ===========================================================================
-# SECTION 4: TASK COMPLETION HANDLER (Called from the /callback webhook)
-# ===========================================================================
-
 async def mark_task_completed(
     task_id: str,
     output: dict,
@@ -432,10 +362,8 @@ async def mark_task_completed(
         )
         await db.commit()
 
-        # Open a FRESH session for run_next_tasks.
-        # The committed session above is now in a clean state, but to avoid
-        # any potential cache/identity-map staleness, we use a new session
-        # so that the engine reads the freshly-committed COMPLETED status.
+        # Open a fresh session to avoid SQLAlchemy identity map staleness
+        # TODO: Refactor engine loop to use raw SQL returning clauses instead of ORM for these state transitions
         async with AsyncSessionLocal() as fresh_db:
             await run_next_tasks(str(task_exec.execution_id), fresh_db)
 

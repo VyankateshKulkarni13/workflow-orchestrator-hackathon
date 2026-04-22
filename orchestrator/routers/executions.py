@@ -1,15 +1,5 @@
 """
-routers/executions.py
----------------------
 Endpoints for triggering and monitoring workflow executions.
-
-Routes:
-  POST /api/v1/executions                          - Trigger a new workflow run
-  GET  /api/v1/executions                          - List all recent runs
-  GET  /api/v1/executions/{execution_id}           - Full status + all task states
-  POST /api/v1/executions/{execution_id}/pause     - Pause a running workflow
-  POST /api/v1/executions/{execution_id}/resume    - Resume a paused workflow
-  POST /api/v1/executions/{execution_id}/terminate - Hard-stop a workflow
 """
 
 from datetime import datetime
@@ -43,16 +33,11 @@ async def get_db():
         yield session
 
 
-# ---------------------------------------------------------------------------
-# Helper: safely format datetimes to ISO strings
-# ---------------------------------------------------------------------------
+
 def _fmt(dt) -> str | None:
     return dt.isoformat() if dt else None
 
 
-# ---------------------------------------------------------------------------
-# POST /api/v1/executions
-# ---------------------------------------------------------------------------
 @router.post("", response_model=MessageResponse, status_code=status.HTTP_201_CREATED)
 async def trigger_execution(
     payload: ExecutionCreateRequest,
@@ -115,9 +100,6 @@ async def trigger_execution(
     )
 
 
-# ---------------------------------------------------------------------------
-# GET /api/v1/executions
-# ---------------------------------------------------------------------------
 @router.get("", response_model=list[ExecutionSummaryResponse])
 async def list_executions(db: AsyncSession = Depends(get_db)):
     """
@@ -141,9 +123,6 @@ async def list_executions(db: AsyncSession = Depends(get_db)):
     ]
 
 
-# ---------------------------------------------------------------------------
-# GET /api/v1/executions/{execution_id}
-# ---------------------------------------------------------------------------
 @router.get("/{execution_id}", response_model=ExecutionDetailResponse)
 async def get_execution(execution_id: str, db: AsyncSession = Depends(get_db)):
     """
@@ -196,9 +175,7 @@ async def get_execution(execution_id: str, db: AsyncSession = Depends(get_db)):
     )
 
 
-# ---------------------------------------------------------------------------
 # POST /api/v1/executions/{execution_id}/pause
-# ---------------------------------------------------------------------------
 @router.post("/{execution_id}/pause", response_model=MessageResponse)
 async def pause_execution(execution_id: str, db: AsyncSession = Depends(get_db)):
     """
@@ -229,9 +206,7 @@ async def pause_execution(execution_id: str, db: AsyncSession = Depends(get_db))
     return MessageResponse(message=f"Execution '{execution_id}' paused successfully.")
 
 
-# ---------------------------------------------------------------------------
 # POST /api/v1/executions/{execution_id}/resume
-# ---------------------------------------------------------------------------
 @router.post("/{execution_id}/resume", response_model=MessageResponse)
 async def resume_execution(execution_id: str, db: AsyncSession = Depends(get_db)):
     """
@@ -264,9 +239,7 @@ async def resume_execution(execution_id: str, db: AsyncSession = Depends(get_db)
     return MessageResponse(message=f"Execution '{execution_id}' resumed successfully.")
 
 
-# ---------------------------------------------------------------------------
 # POST /api/v1/executions/{execution_id}/terminate
-# ---------------------------------------------------------------------------
 @router.post("/{execution_id}/terminate", response_model=MessageResponse)
 async def terminate_execution(execution_id: str, db: AsyncSession = Depends(get_db)):
     """

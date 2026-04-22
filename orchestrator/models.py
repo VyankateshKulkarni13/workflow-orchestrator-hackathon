@@ -9,9 +9,7 @@ from sqlalchemy.orm import relationship
 from database import Base
 
 
-# ---------------------------------------------------------------------------
-# Enums — Postgres enforces these. Only valid values can ever be stored.
-# ---------------------------------------------------------------------------
+
 
 class ExecutionStatus(str, enum.Enum):
     PENDING    = "PENDING"
@@ -31,11 +29,7 @@ class TaskStatus(str, enum.Enum):
     TERMINATED        = "TERMINATED"
 
 
-# ---------------------------------------------------------------------------
-# Table 1: workflow_templates
-# Stores the raw JSON/YAML blueprint uploaded by the admin.
-# One template can be used to trigger many executions.
-# ---------------------------------------------------------------------------
+
 
 class WorkflowTemplate(Base):
     __tablename__ = "workflow_templates"
@@ -72,11 +66,7 @@ class WorkflowTemplate(Base):
     )
 
 
-# ---------------------------------------------------------------------------
-# Table 2: workflow_executions
-# One row per live/completed run of a workflow.
-# e.g. Each customer order = one WorkflowExecution row.
-# ---------------------------------------------------------------------------
+
 
 class WorkflowExecution(Base):
     __tablename__ = "workflow_executions"
@@ -116,13 +106,7 @@ class WorkflowExecution(Base):
     )
 
 
-# ---------------------------------------------------------------------------
-# Table 3: task_executions
-# One row per DAG node per execution run.
-# e.g. 6 nodes × 3 runs = 18 rows in this table.
-# This is the table the engine reads to do topo-sort
-# and what the frontend polls every second to color the graph.
-# ---------------------------------------------------------------------------
+
 
 class TaskExecution(Base):
     __tablename__ = "task_executions"

@@ -1,12 +1,5 @@
 """
-routers/templates.py
----------------------
 Endpoints for managing workflow blueprints (DAG definitions).
-
-Routes:
-  POST /api/v1/templates              - Upload a new DAG blueprint
-  GET  /api/v1/templates              - List all workflow templates
-  GET  /api/v1/templates/{template_id} - Get a specific template
 """
 
 import traceback
@@ -24,17 +17,13 @@ from schemas import MessageResponse, TemplateResponse, TemplateUploadRequest
 router = APIRouter(prefix="/api/v1/templates", tags=["Templates"])
 
 
-# ---------------------------------------------------------------------------
-# FastAPI Dependency Injection — provides a DB session per request
-# ---------------------------------------------------------------------------
+
 async def get_db():
     async with AsyncSessionLocal() as session:
         yield session
 
 
-# ---------------------------------------------------------------------------
-# POST /api/v1/templates
-# ---------------------------------------------------------------------------
+
 @router.post("", response_model=TemplateResponse, status_code=status.HTTP_201_CREATED)
 async def upload_template(
     payload: TemplateUploadRequest,
@@ -81,9 +70,7 @@ async def upload_template(
     )
 
 
-# ---------------------------------------------------------------------------
-# GET /api/v1/templates
-# ---------------------------------------------------------------------------
+
 @router.get("", response_model=list[TemplateResponse])
 async def list_templates(db: AsyncSession = Depends(get_db)):
     """
@@ -105,9 +92,7 @@ async def list_templates(db: AsyncSession = Depends(get_db)):
     ]
 
 
-# ---------------------------------------------------------------------------
-# GET /api/v1/templates/{template_id}
-# ---------------------------------------------------------------------------
+
 @router.get("/{template_id}", response_model=TemplateResponse)
 async def get_template(template_id: str, db: AsyncSession = Depends(get_db)):
     """

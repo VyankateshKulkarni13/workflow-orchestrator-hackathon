@@ -22,9 +22,7 @@ from database import create_tables
 from routers import callbacks, executions, tasks, templates
 
 
-# ---------------------------------------------------------------------------
 # Lifespan: Startup & Shutdown
-# ---------------------------------------------------------------------------
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
@@ -38,9 +36,7 @@ async def lifespan(app: FastAPI):
     print("[SHUTDOWN] Orchestrator shutting down cleanly.")
 
 
-# ---------------------------------------------------------------------------
 # FastAPI Application
-# ---------------------------------------------------------------------------
 app = FastAPI(
     title="Workflow Orchestrator API",
     description=(
@@ -55,10 +51,8 @@ app = FastAPI(
 )
 
 
-# ---------------------------------------------------------------------------
 # CORS Middleware
 # Allow the frontend (React/Next.js on localhost:3000) to call this API.
-# ---------------------------------------------------------------------------
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Tighten in production
@@ -68,11 +62,9 @@ app.add_middleware(
 )
 
 
-# ---------------------------------------------------------------------------
 # Global Exception Handler
 # Catches any unhandled exception and returns a clean JSON error response.
 # Prevents Python tracebacks from leaking to API clients.
-# ---------------------------------------------------------------------------
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     err_detail = traceback.format_exc()
@@ -86,18 +78,14 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 
-# ---------------------------------------------------------------------------
 # Mount All 4 Routers
-# ---------------------------------------------------------------------------
 app.include_router(templates.router)
 app.include_router(executions.router)
 app.include_router(tasks.router)
 app.include_router(callbacks.router)
 
 
-# ---------------------------------------------------------------------------
 # Health Check Endpoint
-# ---------------------------------------------------------------------------
 @app.get("/health", tags=["Health"])
 async def health_check():
     """
@@ -107,9 +95,7 @@ async def health_check():
     return {"status": "healthy", "service": "workflow-orchestrator", "version": "1.0.0"}
 
 
-# ---------------------------------------------------------------------------
 # Root
-# ---------------------------------------------------------------------------
 @app.get("/", tags=["Root"])
 async def root():
     return {

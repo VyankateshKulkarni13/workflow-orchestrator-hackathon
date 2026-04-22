@@ -14,9 +14,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import { Activity, CheckCircle2, Clock, AlertCircle, AlertTriangle, XCircle } from "lucide-react";
 
-// ---------------------------------------------------------------------------
-// Custom Node Design
-// ---------------------------------------------------------------------------
+
 const CustomTaskNode = ({ data }: NodeProps) => {
   const { label, status } = data;
 
@@ -89,16 +87,13 @@ const nodeTypes = {
   customTask: CustomTaskNode,
 };
 
-// ---------------------------------------------------------------------------
-// Graph Component
-// ---------------------------------------------------------------------------
+
 interface WorkflowGraphProps {
   tasks: Array<{ node_id: string; status: string }>;
   dependencies: Array<{ id: string; depends_on: string[] }>;
 }
 
 export function WorkflowGraph({ tasks, dependencies }: WorkflowGraphProps) {
-  // 1. Build a status map for quick lookup
   const statusMap = useMemo(() => {
     const m: Record<string, string> = {};
     tasks.forEach((t) => {
@@ -107,7 +102,6 @@ export function WorkflowGraph({ tasks, dependencies }: WorkflowGraphProps) {
     return m;
   }, [tasks]);
 
-  // 2. Compute Depths (Topology) for layout
   const depths = useMemo(() => {
     const d: Record<string, number> = {};
     const depsMap: Record<string, string[]> = {};
@@ -136,7 +130,6 @@ export function WorkflowGraph({ tasks, dependencies }: WorkflowGraphProps) {
     return d;
   }, [dependencies]);
 
-  // 3. Build Nodes & Edges
   const { nodes, edges } = useMemo(() => {
     const newNodes: Node[] = [];
     const newEdges: Edge[] = [];

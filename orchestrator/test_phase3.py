@@ -26,11 +26,9 @@ async def run_tests():
 
     async with httpx.AsyncClient(timeout=15.0) as client:
 
-        # ------------------------------------------------------------------
         # TEST 1: Upload a 2-node DAG template
         # task_1 has no dependencies, task_2 depends on task_1.
         # Key: "depends_on" is our engine's standard field name.
-        # ------------------------------------------------------------------
         print("\n[Test 1] POST /api/v1/templates — Upload DAG blueprint")
         payload = {
             "name": "Phase3 Integration Test DAG",
@@ -47,9 +45,7 @@ async def run_tests():
         template_id = resp.json()["template_id"]
         print(f"  [PASS] Template created. template_id: {template_id}")
 
-        # ------------------------------------------------------------------
         # TEST 2: Trigger execution
-        # ------------------------------------------------------------------
         print("\n[Test 2] POST /api/v1/executions — Trigger execution")
         exec_payload = {
             "template_id": template_id,
@@ -63,10 +59,8 @@ async def run_tests():
         # Wait for the async engine to complete the dispatch
         await asyncio.sleep(1)
 
-        # ------------------------------------------------------------------
         # TEST 3: Verify initial state — task_1 IN_PROGRESS, task_2 PENDING
         # This proves Kahn's Algorithm is correctly blocking task_2.
-        # ------------------------------------------------------------------
         print(f"\n[Test 3] GET /api/v1/executions/{execution_id} — Verify initial DAG state")
         resp = await client.get(f"{BASE_URL}/executions/{execution_id}")
         assert resp.status_code == 200, f"FAIL: {resp.text}"
@@ -85,9 +79,7 @@ async def run_tests():
         print(f"  task_2 status    : {task_2['status']} (expected: PENDING)")
         print(f"  [PASS] Kahn's Algorithm correctly blocked task_2 until task_1 completes.")
 
-        # ------------------------------------------------------------------
         # TEST 4: Simulate worker completing task_1 via callback webhook
-        # ------------------------------------------------------------------
         print("\n[Test 4] POST /api/v1/callbacks/task-complete — Simulate worker success")
         cb_payload = {
             "task_id": task_1["task_id"],
@@ -100,10 +92,8 @@ async def run_tests():
         # Wait for engine to process and unlock task_2
         await asyncio.sleep(1)
 
-        # ------------------------------------------------------------------
         # TEST 5: Verify DAG progressed — task_1 COMPLETED, task_2 IN_PROGRESS
         # This proves the callback correctly fired Kahn's next wave.
-        # ------------------------------------------------------------------
         print(f"\n[Test 5] GET /api/v1/executions/{execution_id} — Verify DAG progressed")
         resp = await client.get(f"{BASE_URL}/executions/{execution_id}")
         assert resp.status_code == 200, f"FAIL: {resp.text}"
