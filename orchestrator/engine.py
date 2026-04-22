@@ -19,6 +19,7 @@ from datetime import datetime
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from database import AsyncSessionLocal
 from models import (
     WorkflowExecution,
     WorkflowTemplate,
@@ -51,18 +52,27 @@ def parse_dag(definition: dict) -> dict:
         ValueError: If the DAG structure is invalid or contains a cycle.
     """
     # -----------------------------------------------------------------------
-    # Step 1: Extract tasks from the definition
+    # Step 1: Extract tasks — supports both flat {"tasks": [...]} and
+    #         Airflow-style {"dag": {"tasks": [...]}} wrapper formats.
     # -----------------------------------------------------------------------
-    tasks = definition.get("tasks")
-    if not tasks or not isinstance(tasks, list):
-        raise ValueError("Workflow definition must have a 'tasks' list.")
+    if "dag" in definition and "tasks" in definition["dag"]:
+        tasks = definition["dag"]["tasks"]
+    else:
+        tasks = definition.get("tasks")
 
-    # Build a map of task_id â†’ task definition for quick lookup
+    if not tasks or not isinstance(tasks, list):
+        raise ValueError(
+            "Workflow definition must have a 'tasks' list "
+            "(at top level or inside a 'dag' key)."
+        )
+
+    # Build a map of task_id → task definition for quick lookup.
+    # Supports both 'id' (our format) and 'task_id' (Airflow-style).
     task_map = {}
     for task in tasks:
-        task_id = task.get("id")
+        task_id = task.get("id") or task.get("task_id")
         if not task_id:
-            raise ValueError(f"Every task must have an 'id' field. Found: {task}")
+            raise ValueError(f"Every task must have an 'id' or 'task_id' field. Found: {task}")
         if task_id in task_map:
             raise ValueError(f"Duplicate task id found: '{task_id}'")
         task_map[task_id] = task
@@ -80,8 +90,9 @@ def parse_dag(definition: dict) -> dict:
     adjacency = defaultdict(list)
 
     for task in tasks:
-        task_id = task["id"]
-        depends_on = task.get("depends_on", [])
+        task_id = task.get("id") or task.get("task_id")
+        # Support both 'depends_on' (our format) and 'dependencies' (Airflow/Surya's format)
+        depends_on = task.get("depends_on") or task.get("dependencies") or []
 
         for parent_id in depends_on:
             if parent_id not in task_map:
@@ -89,12 +100,12 @@ def parse_dag(definition: dict) -> dict:
                     f"Task '{task_id}' depends on '{parent_id}', "
                     f"but '{parent_id}' is not defined in the workflow."
                 )
-            # Parent â†’ Child edge
+            # Parent → Child edge
             adjacency[parent_id].append(task_id)
             in_degree[task_id] += 1
 
     # -----------------------------------------------------------------------
-    # Step 3: Kahn's Algorithm â€” BFS Cycle Detection
+    # Step 3: Kahn's Algorithm — BFS Cycle Detection
     # Start with all nodes that have no dependencies (in_degree == 0).
     # Process them, decrement children's in_degree, add newly freed nodes.
     # If we process all nodes â†’ no cycle.
@@ -181,7 +192,13 @@ async def run_next_tasks(execution_id: str, db: AsyncSession) -> None:
 
         # The full DAG definition (the parsed JSON the admin uploaded)
         definition = template.definition
-        tasks_definition = {t["id"]: t for t in definition["tasks"]}
+        # Extract tasks from definition, supporting both flat and 'dag'-wrapped formats
+        if "dag" in definition and "tasks" in definition["dag"]:
+            raw_tasks = definition["dag"]["tasks"]
+        else:
+            raw_tasks = definition.get("tasks", [])
+        # Build lookup using either 'id' or 'task_id' key
+        tasks_definition = {(t.get("id") or t.get("task_id")): t for t in raw_tasks}
 
         # -------------------------------------------------------------------
         # Step 2: Load all task execution rows for this run
@@ -209,7 +226,8 @@ async def run_next_tasks(execution_id: str, db: AsyncSession) -> None:
 
             node_id = task_exec.node_id
             task_def = tasks_definition.get(node_id, {})
-            depends_on = task_def.get("depends_on", [])
+            # Support both 'depends_on' and 'dependencies' key names
+            depends_on = task_def.get("depends_on") or task_def.get("dependencies") or []
 
             # Count how many parents are NOT yet COMPLETED
             blocking_parents = 0
@@ -243,19 +261,15 @@ async def run_next_tasks(execution_id: str, db: AsyncSession) -> None:
                 await db.commit()
             return
 
-        dispatch_coroutines = [
-            _dispatch_single_task(
+        # 4. Dispatch them sequentially (asyncpg does not allow concurrent queries on the same session)
+        for node_id, task_def, task_exec in ready_nodes:
+            await _dispatch_single_task(
                 node_id=node_id,
                 task_def=task_def,
                 task_exec=task_exec,
                 global_context=execution.global_context or {},
                 db=db,
             )
-            for node_id, task_def, task_exec in ready_nodes
-        ]
-
-        await asyncio.gather(*dispatch_coroutines, return_exceptions=True)
-
         await db.execute(
             update(WorkflowExecution)
             .where(WorkflowExecution.execution_id == execution_id)
@@ -414,7 +428,12 @@ async def mark_task_completed(
         )
         await db.commit()
 
-        await run_next_tasks(str(task_exec.execution_id), db)
+        # Open a FRESH session for run_next_tasks.
+        # The committed session above is now in a clean state, but to avoid
+        # any potential cache/identity-map staleness, we use a new session
+        # so that the engine reads the freshly-committed COMPLETED status.
+        async with AsyncSessionLocal() as fresh_db:
+            await run_next_tasks(str(task_exec.execution_id), fresh_db)
 
     except Exception as exc:
         err_detail = traceback.format_exc()
@@ -459,7 +478,9 @@ async def mark_task_failed(
         )
         await db.commit()
 
-        await run_next_tasks(str(task_exec.execution_id), db)
+        # Open a fresh session so engine reads the newly committed FAILED status
+        async with AsyncSessionLocal() as fresh_db:
+            await run_next_tasks(str(task_exec.execution_id), fresh_db)
 
     except Exception as exc:
         err_detail = traceback.format_exc()

@@ -22,9 +22,9 @@ async def validate():
 
     expected = {"workflow_templates", "workflow_executions", "task_executions"}
     if expected.issubset(set(tables)):
-        print("✅ Phase 1 PASSED — All 3 tables exist in PostgreSQL. Database layer is fully operational.")
+        print("[PASS] Phase 1 PASSED -- All 3 tables exist in PostgreSQL. Database layer is fully operational.")
     else:
-        print("❌ Phase 1 FAILED — Some tables are missing.")
+        print("[FAIL] Phase 1 FAILED -- Some tables are missing.")
 
     await engine.dispose()
 
