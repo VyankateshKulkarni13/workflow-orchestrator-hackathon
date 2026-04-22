@@ -3,11 +3,11 @@
 
 A robust, high-performance workflow orchestration engine designed to coordinate distributed microservices for complex e-commerce order fulfillment lifecycles.
 
-## 🚀 Overview
+## Overview
 
 This system allows administrators to define fulfillment logic as Directed Acyclic Graphs (DAGs). Each node in the graph represents a specific task (e.g., Payment, Inventory, Shipping) handled by distributed workers. The engine ensures tasks are executed in the correct order, manages state transitions, and supports human-in-the-loop approvals.
 
-## 🛠 Tech Stack
+## Tech Stack
 
 - **Backend**: FastAPI (Python 3.10+)
 - **Database**: PostgreSQL with SQLAlchemy (Async)
@@ -15,7 +15,7 @@ This system allows administrators to define fulfillment logic as Directed Acycli
 - **Frontend**: Next.js 15+ (App Router) with Tailwind CSS
 - **Containerization**: Docker & Docker Compose
 
-## 📦 Quick Start
+## Quick Start
 
 The entire stack is containerized for a seamless setup experience.
 
@@ -37,7 +37,7 @@ Open [http://localhost:3000](http://localhost:3000) to monitor executions.
 ### 3. API Documentation
 Interactive Swagger documentation is available at [http://localhost:8000/docs](http://localhost:8000/docs).
 
-## 📂 Project Structure
+## Project Structure
 
 ```text
 ├── orchestrator/      # Core DAG engine and FastAPI routers
@@ -47,11 +47,11 @@ Interactive Swagger documentation is available at [http://localhost:8000/docs](h
 └── workflows/         # Example DAG templates (JSON)
 ```
 
-## 📖 Documentation
+## Documentation
 
 For a deep dive into the system design, event-driven architecture, and state machine logic, see the [Master Architecture Document](docs/Master_Architecture_Doc.md).
 
-## 👥 Team
+## Team
 | Name | GitHub Profile |
 | :--- | :--- |
 | Vyankatesh Kulkarni | [@VyankateshKulkarni13](https://github.com/VyankateshKulkarni13) |
