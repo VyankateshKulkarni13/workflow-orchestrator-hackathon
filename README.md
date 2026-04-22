@@ -1,67 +1,57 @@
 # Workflow Orchestrator
-### E-Commerce Order Fulfillment System | NTAC:3NS-20
+### Centralized DAG-based E-Commerce Fulfillment | NTAC:3NS-20
 
-A centralized, DAG-based workflow orchestration engine built to coordinate distributed microservices for e-commerce order fulfillment.
+A robust, high-performance workflow orchestration engine designed to coordinate distributed microservices for complex e-commerce order fulfillment lifecycles.
 
-## Quick Start (5 Minutes)
+## 🚀 Overview
 
-### Prerequisites
-- Docker Desktop (running)
-- Python 3.11+
-- Node.js 20+
+This system allows administrators to define fulfillment logic as Directed Acyclic Graphs (DAGs). Each node in the graph represents a specific task (e.g., Payment, Inventory, Shipping) handled by distributed workers. The engine ensures tasks are executed in the correct order, manages state transitions, and supports human-in-the-loop approvals.
 
-### 1. Clone & Configure
+## 🛠 Tech Stack
+
+- **Backend**: FastAPI (Python 3.10+)
+- **Database**: PostgreSQL with SQLAlchemy (Async)
+- **Queue**: Redis
+- **Frontend**: Next.js 15+ (App Router) with Tailwind CSS
+- **Containerization**: Docker & Docker Compose
+
+## 📦 Quick Start
+
+The entire stack is containerized for a seamless setup experience.
+
+### 1. Start the System
 ```bash
-git clone https://github.com/VyankateshKulkarni13/workflow-orchestrator-hackathon
-cd workflow-orchestrator-hackathon
-cp .env.example .env
+docker compose up -d --build
 ```
 
-### 2. Start Infrastructure
-```bash
-docker-compose up -d
-```
-Boots PostgreSQL on `:5432` and Redis on `:6379`.
+This command initializes:
+- **PostgreSQL**: Workflow state and history
+- **Redis**: Task queue and messaging
+- **Orchestrator API**: Core engine logic (Port 8000)
+- **Workers**: Unified worker pool for fulfillment tasks
+- **Frontend**: Real-time monitoring dashboard (Port 3000)
 
-### 3. Start the Orchestrator
-```bash
-cd orchestrator
-python -m venv venv && venv\Scripts\activate
-pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
-```
-API Docs → http://localhost:8000/docs
+### 2. Access the Dashboard
+Open [http://localhost:3000](http://localhost:3000) to monitor executions.
 
-### 4. Start the Workers (5 terminals)
-```bash
-cd workers
-python order_validation_worker.py
-python payment_worker.py
-python inventory_worker.py
-python shipping_worker.py
-python notification_worker.py
+### 3. API Documentation
+Interactive Swagger documentation is available at [http://localhost:8000/docs](http://localhost:8000/docs).
+
+## 📂 Project Structure
+
+```text
+├── orchestrator/      # Core DAG engine and FastAPI routers
+├── workers/           # Task handlers and Redis listeners
+├── frontend/          # Next.js monitoring dashboard
+├── docs/              # Technical architecture documentation
+└── workflows/         # Example DAG templates (JSON)
 ```
 
-### 5. Start the Dashboard
-```bash
-cd frontend
-npm install && npm run dev
-```
-Dashboard → http://localhost:3000
+## 📖 Documentation
 
----
+For a deep dive into the system design, event-driven architecture, and state machine logic, see the [Master Architecture Document](docs/Master_Architecture_Doc.md).
 
-## Documentation
-All documentation lives in the `/docs` folder:
-- [`PROJECT_DESCRIPTION.md`](docs/PROJECT_DESCRIPTION.md) — Complete project reference (single source of truth)
-- [`IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) — Step-by-step development plan
-- [`MICROSERVICES_REFERENCE.md`](docs/MICROSERVICES_REFERENCE.md) — Mock worker contracts & I/O specs
-- [`system_architecture.md`](docs/system_architecture.md) — Architecture diagrams
-- [`tech_stack_comparison.md`](docs/tech_stack_comparison.md) — Tech stack analysis
-
-## Team
-| Name | GitHub |
-|---|---|
-| Vyankatesh Kulkarni | [@VyankateshKulkarni13](https://github.com/VyankateshKulkarni13) |
-| Aman J | [@AmanJ4588](https://github.com/AmanJ4588) |
-| Surya | [@suryaroffical125-dev](https://github.com/suryaroffical125-dev) |
+## 👥 Team
+- **Vyankatesh Kulkarni** ([@VyankateshKulkarni13](https://github.com/VyankateshKulkarni13))
+- **Aman J** ([@AmanJ4588](https://github.com/AmanJ4588))
+- **Surya** ([@suryaroffical125-dev](https://github.com/suryaroffical125-dev))
