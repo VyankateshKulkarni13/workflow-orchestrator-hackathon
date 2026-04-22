@@ -52,6 +52,9 @@ Interactive Swagger documentation is available at [http://localhost:8000/docs](h
 For a deep dive into the system design, event-driven architecture, and state machine logic, see the [Master Architecture Document](docs/Master_Architecture_Doc.md).
 
 ## 👥 Team
-- **Vyankatesh Kulkarni** ([@VyankateshKulkarni13](https://github.com/VyankateshKulkarni13))
-- **Aman J** ([@AmanJ4588](https://github.com/AmanJ4588))
-- **Surya** ([@suryaroffical125-dev](https://github.com/suryaroffical125-dev))
+| Name | GitHub Profile |
+| :--- | :--- |
+| Vyankatesh Kulkarni | [@VyankateshKulkarni13](https://github.com/VyankateshKulkarni13) |
+| Aman J | [@AmanJ4588](https://github.com/AmanJ4588) |
+| Surya | [@suryaroffical125-dev](https://github.com/suryaroffical125-dev) |
+| Aakash | [@Aakash07032003](https://github.com/Aakash07032003) |
