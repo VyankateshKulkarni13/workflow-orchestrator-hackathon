@@ -8,7 +8,51 @@ The EC Orchestrator solves this by acting as a centralized "brain" that defines 
 ---
 
 ## 2. Comprehensive System Architecture
-The platform is built using a modern microservice-driven design pattern, entirely containerized via Docker. It consists of five distinct architectural layers:
+The platform is built using a modern microservice-driven design pattern, entirely containerized via Docker.
+
+```mermaid
+graph TD
+    %% External Actors
+    Admin([User / Admin])
+
+    %% Frontend Layer
+    subgraph Control_Plane [Control Plane]
+        UI[Next.js Dashboard]
+    end
+
+    %% Engine Layer
+    subgraph Core [Orchestration Engine]
+        API[FastAPI Orchestrator]
+        DB[(PostgreSQL)]
+    end
+
+    %% Event Layer
+    subgraph Event_Layer [Message Broker]
+        Redis[(Redis Queue)]
+    end
+
+    %% Execution Layer
+    subgraph Workers [Distributed Microservices]
+        W1[Payment Worker]
+        W2[Inventory Worker]
+        W3[Notification Worker]
+    end
+
+    %% Connections
+    Admin -- "Uploads DAGs / Monitors" --> UI
+    UI -- "HTTP REST (Polling/Commands)" --> API
+    API -- "Reads/Writes State" --> DB
+    API -- "Publishes Task Payloads" --> Redis
+    Redis -- "Workers Pull Tasks" --> W1
+    Redis -- "Workers Pull Tasks" --> W2
+    Redis -- "Workers Pull Tasks" --> W3
+    
+    W1 -- "Webhook: POST /task-complete" --> API
+    W2 -- "Webhook: POST /task-complete" --> API
+    W3 -- "Webhook: POST /task-complete" --> API
+```
+
+It consists of five distinct architectural layers:
 
 ### A. The Orchestration Engine (API Layer)
 - **Technology:** Python 3.10, FastAPI, SQLAlchemy (AsyncPG)

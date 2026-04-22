@@ -31,3 +31,7 @@ orchestrator/test_phase3.py
 orchestrator/orchestrator_debug.log
 workers/test_phase4.py
 workers/microservices/test_http_services.py
+
+# Docs cleanup
+docs/*
+!docs/Master_Architecture_Doc.md
