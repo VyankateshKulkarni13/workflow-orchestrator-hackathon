@@ -27,10 +27,20 @@ Thumbs.db
 # Testing artifacts & debug logs
 test_pause.py
 test_rigorous.py
-orchestrator/test_phase3.py
+*.py[cod]
+orchestrator/test_*.py
 orchestrator/orchestrator_debug.log
-workers/test_phase4.py
-workers/microservices/test_http_services.py
+workers/test_*.py
+workers/microservices/test_*.py
+
+# Backup & binary artifacts
+*.zip
+*.docx
+*.pdf
+
+# AI agent meta files
+AGENTS.md
+CLAUDE.md
 
 # Docs cleanup
 docs/*
