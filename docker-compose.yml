@@ -27,5 +27,53 @@ services:
       timeout: 3s
       retries: 5
 
+  orchestrator:
+    build:
+      context: ./orchestrator
+      dockerfile: Dockerfile
+    container_name: ec_orchestrator_api
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://orchestrator:password@postgres:5432/orchestrator_db
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/templates"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  workers:
+    build:
+      context: ./workers
+      dockerfile: Dockerfile
+    container_name: ec_orchestrator_workers
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - ORCHESTRATOR_HOST=http://orchestrator:8000
+    depends_on:
+      redis:
+        condition: service_healthy
+      orchestrator:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ec_orchestrator_frontend
+    ports:
+      - "3000:3000"
+    environment:
+      # Browser fetches data, so it must hit the host's port 8000
+      - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+    depends_on:
+      - orchestrator
+
 volumes:
   postgres_data:
