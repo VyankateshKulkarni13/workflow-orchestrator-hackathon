@@ -222,11 +222,8 @@ async def pause_execution(execution_id: str, db: AsyncSession = Depends(get_db))
             detail=f"Cannot pause execution with status '{execution.status.value}'. Must be RUNNING."
         )
 
-    await db.execute(
-        update(WorkflowExecution)
-        .where(WorkflowExecution.execution_id == execution_id)
-        .values(status=ExecutionStatus.PAUSED, updated_at=datetime.utcnow())
-    )
+    execution.status = ExecutionStatus.PAUSED
+    execution.updated_at = datetime.utcnow()
     await db.commit()
 
     return MessageResponse(message=f"Execution '{execution_id}' paused successfully.")
@@ -257,11 +254,8 @@ async def resume_execution(execution_id: str, db: AsyncSession = Depends(get_db)
             detail=f"Cannot resume execution with status '{execution.status.value}'. Must be PAUSED."
         )
 
-    await db.execute(
-        update(WorkflowExecution)
-        .where(WorkflowExecution.execution_id == execution_id)
-        .values(status=ExecutionStatus.RUNNING, updated_at=datetime.utcnow())
-    )
+    execution.status = ExecutionStatus.RUNNING
+    execution.updated_at = datetime.utcnow()
     await db.commit()
 
     # Re-trigger the engine from where it left off
@@ -295,12 +289,8 @@ async def terminate_execution(execution_id: str, db: AsyncSession = Depends(get_
             detail=f"Execution is already in a terminal state: '{execution.status.value}'."
         )
 
-    # Mark the execution itself
-    await db.execute(
-        update(WorkflowExecution)
-        .where(WorkflowExecution.execution_id == execution_id)
-        .values(status=ExecutionStatus.TERMINATED, updated_at=datetime.utcnow())
-    )
+    execution.status = ExecutionStatus.TERMINATED
+    execution.updated_at = datetime.utcnow()
 
     # Mark all non-terminal tasks as TERMINATED to keep the audit trail consistent
     await db.execute(

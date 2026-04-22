@@ -7,8 +7,8 @@ import { Header } from "@/components/Header";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "PrintWave Orchestrator",
-  description: "DAG-based Workflow Orchestration Dashboard",
+  title: "EC Orchestrator",
+  description: "DAG-based E-Commerce Workflow Orchestration Engine",
 };
 
 export default function RootLayout({

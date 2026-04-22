@@ -1,0 +1,8 @@
+# requirements.txt
+# Install with: pip install -r requirements.txt
+
+fastapi==0.115.12
+uvicorn[standard]==0.34.0
+pydantic==2.11.3
+httpx==0.28.1        # optional: for making HTTP calls between services
+redis==5.2.1         # still needed by base_worker.py

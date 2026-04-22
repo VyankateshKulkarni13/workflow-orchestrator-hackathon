@@ -18,7 +18,7 @@ export function Sidebar() {
     <aside className="w-64 border-r border-card-border glass flex flex-col h-screen sticky top-0">
       <div className="p-6">
         <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
-          PrintWave Orchestrator
+          EC Orchestrator
         </h1>
       </div>
       <nav className="flex-1 px-4 space-y-2 mt-4">

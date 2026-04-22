@@ -209,8 +209,12 @@ async def run_next_tasks(execution_id: str, db: AsyncSession) -> None:
         )
         all_task_execs = task_result.scalars().all()
 
-        # Build a look-up: node_id â†’ TaskExecution row
+        # Build a look-up: node_id -> TaskExecution row
         task_exec_map = {te.node_id: te for te in all_task_execs}
+        
+        print(f"[DEBUG] run_next_tasks: fetched {len(all_task_execs)} tasks for {execution_id}")
+        for t in all_task_execs:
+            print(f"[DEBUG] {t.node_id}: {t.status}")
 
         # -------------------------------------------------------------------
         # Step 3: Kahn's Runtime In-Degree Calculation
