@@ -1,0 +1,60 @@
+{
+  "_comment": "E-Commerce Order Processing DAG — canonical demo workflow for the Workflow Orchestrator Hackathon.",
+  "_description": "6-node workflow demonstrating sequential deps, parallel execution, human-in-the-loop, and retry.",
+
+  "tasks": [
+    {
+      "id": "validate_order",
+      "name": "Validate Order Details",
+      "type": "MOCK_HTTP",
+      "depends_on": [],
+      "config": {},
+      "_handled_by": "order_validation_worker.py | 1.0s | 0% failure"
+    },
+    {
+      "id": "charge_payment",
+      "name": "Process Payment",
+      "type": "MOCK_HTTP",
+      "depends_on": ["validate_order"],
+      "config": {
+        "retry_policy": {
+          "max_attempts": 3,
+          "backoff_ms": 2000
+        }
+      },
+      "_handled_by": "payment_worker.py | 2.0s | 10% failure — demonstrates retry"
+    },
+    {
+      "id": "fraud_check",
+      "name": "Manual Fraud Review",
+      "type": "HUMAN_APPROVAL",
+      "depends_on": ["validate_order"],
+      "config": {},
+      "_handled_by": "HUMAN_APPROVAL — pauses until admin calls POST /api/v1/tasks/{task_id}/approve"
+    },
+    {
+      "id": "update_inventory",
+      "name": "Reserve Inventory in Warehouse",
+      "type": "MOCK_HTTP",
+      "depends_on": ["charge_payment", "fraud_check"],
+      "config": {},
+      "_handled_by": "inventory_worker.py | 1.5s | 0% failure"
+    },
+    {
+      "id": "prepare_shipping",
+      "name": "Prepare & Schedule Shipment",
+      "type": "MOCK_HTTP",
+      "depends_on": ["update_inventory"],
+      "config": {},
+      "_handled_by": "shipping_worker.py | 2.0s | 0% failure"
+    },
+    {
+      "id": "send_confirmation",
+      "name": "Send Order Confirmation Email",
+      "type": "MOCK_HTTP",
+      "depends_on": ["prepare_shipping"],
+      "config": {},
+      "_handled_by": "notification_worker.py | 0.5s | 0% failure"
+    }
+  ]
+}
